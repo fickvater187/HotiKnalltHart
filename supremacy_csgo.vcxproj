@@ -229,6 +229,7 @@
     <ClCompile Include="local_animation.cpp" />
     <ClCompile Include="matchframework.cpp" />
     <ClCompile Include="materialsystem.cpp" />
+    <ClCompile Include="playsound.cpp" />
     <ClCompile Include="shadowmgr.cpp" />
     <ClCompile Include="csgo.cpp" />
     <ClCompile Include="cvar.cpp" />

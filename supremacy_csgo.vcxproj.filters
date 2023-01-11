@@ -473,5 +473,8 @@
     <ClCompile Include="local_animation.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="playsound.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
