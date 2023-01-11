@@ -1,4 +1,5 @@
 #include "includes.h"
+#define M_RADPI 57.295779513082f
 
 void math::AngleMatrix( const ang_t& ang, const vec3_t& pos, matrix3x4_t& out ) {
     g_csgo.AngleMatrix( ang, out );
@@ -23,6 +24,81 @@ void math::NormalizeAngle( float &angle ) {
 
     // normalize.
     angle = ( angle < 0.f ) ? angle + ( 360.f * rot ) : angle - ( 360.f * rot );
+}
+
+float math::SegmentToSegment(const vec3_t s1, const vec3_t s2, const vec3_t k1, const vec3_t k2)
+{
+    static auto constexpr epsilon = 0.00000001;
+
+    auto u = s2 - s1;
+    auto v = k2 - k1;
+    const auto w = s1 - k1;
+
+    const auto a = u.dot(u);
+    const auto b = u.dot(v);
+    const auto c = v.dot(v);
+    const auto d = u.dot(w);
+    const auto e = v.dot(w);
+    const auto D = a * c - b * b;
+    float sn, sd = D;
+    float tn, td = D;
+
+    if (D < epsilon) {
+        sn = 0.0;
+        sd = 1.0;
+        tn = e;
+        td = c;
+    }
+    else {
+        sn = b * e - c * d;
+        tn = a * e - b * d;
+
+        if (sn < 0.0) {
+            sn = 0.0;
+            tn = e;
+            td = c;
+        }
+        else if (sn > sd) {
+            sn = sd;
+            tn = e + b;
+            td = c;
+        }
+    }
+
+    if (tn < 0.0) {
+        tn = 0.0;
+
+        if (-d < 0.0)
+            sn = 0.0;
+        else if (-d > a)
+            sn = sd;
+        else {
+            sn = -d;
+            sd = a;
+        }
+    }
+    else if (tn > td) {
+        tn = td;
+
+        if (-d + b < 0.0)
+            sn = 0;
+        else if (-d + b > a)
+            sn = sd;
+        else {
+            sn = -d + b;
+            sd = a;
+        }
+    }
+
+    const float sc = abs(sn) < epsilon ? 0.0 : sn / sd;
+    const float tc = abs(tn) < epsilon ? 0.0 : tn / td;
+
+    math::m128 n;
+    auto dp = w + u * sc - v * tc;
+    n.f[0] = dp.dot(dp);
+    const auto calc = math::sqrt_ps(n.v);
+    return reinterpret_cast<const math::m128*>(&calc)->f[0];
+
 }
 
 float math::ApproachAngle( float target, float value, float speed ) {
@@ -102,6 +178,38 @@ vec3_t math::CalcAngle(const vec3_t& vecSource, const vec3_t& vecDestination) {
         vAngle.y += 180.0f;
 
     return vAngle;
+}
+
+void math::CalcAngle3(const vec3_t src, const vec3_t dst, ang_t& angles) {
+    auto delta = src - dst;
+    vec3_t vec_zero = vec3_t(0.0f, 0.0f, 0.0f);
+    ang_t ang_zero = ang_t(0.0f, 0.0f, 0.0f);
+
+
+    if (delta == vec_zero)
+        angles = ang_zero;
+
+    const auto len = delta.length();
+
+    if (delta.z == 0.0f && len == 0.0f)
+        angles = ang_zero;
+
+    if (delta.y == 0.0f && delta.x == 0.0f)
+        angles = ang_zero;
+
+
+#ifdef QUICK_MATH
+    angles.x = (fast_asin(delta.z / delta.Length()) * M_RADPI);
+    angles.y = (fast_atan(delta.y / delta.x) * M_RADPI);
+#else
+    angles.x = (asinf(delta.z / delta.length()) * M_RADPI);
+    angles.y = (atanf(delta.y / delta.x) * M_RADPI);
+#endif
+
+    angles.z = 0.0f;
+    if (delta.x >= 0.0f) { angles.y += 180.0f; }
+
+    angles.clamp();
 }
 
 void math::AngleVectors( const ang_t& angles, vec3_t* forward, vec3_t* right, vec3_t* up ) {

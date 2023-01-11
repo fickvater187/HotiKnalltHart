@@ -5,11 +5,12 @@ public:
 	__forceinline ShotRecord( ) : m_target{}, m_record{}, m_time{}, m_lat{}, m_damage{}, m_pos{}, m_matched{} {}
 
 public:
-	Player*    m_target;
+	Player* m_target;
 	LagRecord* m_record;
 	float      m_time, m_lat, m_damage;
 	vec3_t     m_pos;
 	bool       m_matched;
+	int		   m_hitbox;
 };
 
 class VisualImpactData_t {
@@ -66,6 +67,14 @@ public:
     std::vector< VisualImpactData_t > m_vis_impacts;
 	std::deque< ImpactRecord >        m_impacts;
 	std::deque< HitRecord >           m_hits;
+
+	float iHitDmg = NULL;
+	bool iHit = false;
+	bool iHeadshot = false;
+	bool canhit = false;
+
+	vec3_t iPlayerOrigin, iPlayermins, iPlayermaxs;
+	vec2_t iPlayerbottom, iPlayertop;
 };
 
 extern Shots g_shots;

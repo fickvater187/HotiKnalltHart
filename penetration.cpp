@@ -106,7 +106,7 @@ bool penetration::TraceToExit( const vec3_t &start, const vec3_t& dir, vec3_t& o
 		new_end = out - ( dir * 4.f );
 
 		// do first trace aHR0cHM6Ly9zdGVhbWNvbW11bml0eS5jb20vaWQvc2ltcGxlcmVhbGlzdGlj.
-		g_csgo.m_engine_trace->TraceRay( Ray( out, new_end ), MASK_SHOT, nullptr, exit_trace );
+		g_csgo.m_engine_trace->TraceRay(Ray(out, new_end), MASK_SHOT, nullptr, exit_trace);
 
         // note - dex; this is some new stuff added sometime around late 2017 ( 10.31.2017 update? ).
         if( g_csgo.sv_clip_penetration_traces_to_players->GetInt( ) )

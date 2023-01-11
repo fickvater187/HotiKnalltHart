@@ -15,6 +15,16 @@ namespace math {
         return val * ( 180.f / pi );
     }
 
+    typedef __declspec(align(16)) union {
+        float f[4];
+        __m128 v;
+    } m128;
+
+    inline __m128 sqrt_ps(const __m128 squared) {
+        return _mm_sqrt_ps(squared);
+    }
+
+
     // angle mod ( shitty normalize ).
     __forceinline float AngleMod( float angle ) {
         return ( 360.f / 65536 ) * ( ( int )( angle * ( 65536.f / 360.f ) ) & 65535 );
@@ -35,8 +45,10 @@ namespace math {
     void  AngleVectors( const ang_t& angles, vec3_t* forward, vec3_t* right = nullptr, vec3_t* up = nullptr );
     float GetFOV( const ang_t &view_angles, const vec3_t &start, const vec3_t &end );
     void  VectorTransform( const vec3_t& in, const matrix3x4_t& matrix, vec3_t& out );
+    void CalcAngle3(const vec3_t src, const vec3_t dst, ang_t& angles);
     void  VectorITransform( const vec3_t& in, const matrix3x4_t& matrix, vec3_t& out );
     void  MatrixAngles( const matrix3x4_t& matrix, ang_t& angles );
+    float SegmentToSegment(const vec3_t s1, const vec3_t s2, const vec3_t k1, const vec3_t k2);
     void  MatrixCopy( const matrix3x4_t &in, matrix3x4_t &out );
     void  ConcatTransforms( const matrix3x4_t &in1, const matrix3x4_t &in2, matrix3x4_t &out );
 

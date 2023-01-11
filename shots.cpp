@@ -174,25 +174,37 @@ void Shots::OnImpact( IGameEvent *evt ) {
 
 	// we should have 100% hit this player..
 	// this is a miss due to wrong angles.
-	else if ( trace.m_entity == target ) {
+	else if (trace.m_entity == target) {
 		size_t mode = shot->m_record->m_mode;
 
 		// if we miss a shot on body update.
 		// we can chose to stop shooting at them.
-		if ( mode == Resolver::Modes::RESOLVE_BODY )
+		if (mode == Resolver::Modes::RESOLVE_BODY) {
 			++data->m_body_index;
+		}
 
-		else if ( mode == Resolver::Modes::RESOLVE_STAND )
+		else if (mode == Resolver::Modes::RESOLVE_LASTMOVE) {
+			++data->m_last_move;
+		}
+
+		else if (mode == Resolver::Modes::RESOLVE_UNKNOWM) {
+			++data->m_unknown_move;
+		}
+
+		else if (mode == Resolver::Modes::RESOLVE_STAND) {
 			++data->m_stand_index;
+		}
 
-		else if ( mode == Resolver::Modes::RESOLVE_STAND2 )
+		else if (mode == Resolver::Modes::RESOLVE_STAND2) {
 			++data->m_stand_index2;
+		}
 
 		++data->m_missed_shots;
 	}
 
+
 	// restore player to his original state.
-	backup.restore( target );
+	backup.restore(target);
 }
 
 void Shots::OnHurt( IGameEvent *evt ) {
@@ -299,16 +311,15 @@ void Shots::OnHurt( IGameEvent *evt ) {
 	hit.m_impact = impact;
 	hit.m_group = group;
 	hit.m_damage = damage;
-
 	//g_cl.print( "hit %x time: %f lat: %f dmg: %f\n", impact->m_shot->m_record, impact->m_shot->m_time, impact->m_shot->m_lat, impact->m_shot->m_damage );
 
-	m_hits.push_front( hit );
+	m_hits.push_front(hit);
 
-	while ( m_hits.size( ) > 128 )
-		m_hits.pop_back( );
+	while (m_hits.size() > 128)
+		m_hits.pop_back();
 
-	AimPlayer *data = &g_aimbot.m_players[ target->index( ) - 1 ];
-	if ( !data )
+	AimPlayer* data = &g_aimbot.m_players[target->index() - 1];
+	if (!data)
 		return;
 
 	// we hit, reset missed shots counter.
@@ -318,19 +329,27 @@ void Shots::OnHurt( IGameEvent *evt ) {
 
 	// if we miss a shot on body update.
 	// we can chose to stop shooting at them.
-	if ( mode == Resolver::Modes::RESOLVE_BODY && data->m_body_index > 0 )
+	if (mode == Resolver::Modes::RESOLVE_BODY && data->m_body_index > 0)
 		--data->m_body_index;
 
-	else if ( mode == Resolver::Modes::RESOLVE_STAND && data->m_stand_index > 0 )
+	else if (mode == Resolver::Modes::RESOLVE_STAND && data->m_stand_index > 0)
 		--data->m_stand_index;
 
-	else if ( mode == Resolver::Modes::RESOLVE_STAND2 && data->m_stand_index2 > 0 )
+	else if (mode == Resolver::Modes::RESOLVE_STAND2 && data->m_stand_index2 > 0)
 		--data->m_stand_index2;
+
+	else if (mode == Resolver::Modes::RESOLVE_LASTMOVE && data->m_last_move > 0) {
+		--data->m_last_move;
+	}
+
+	else if (mode == Resolver::Modes::RESOLVE_UNKNOWM && data->m_unknown_move > 0) {
+		--data->m_unknown_move;
+	}
 
 	// if we hit head
 	// shoot at this 5 more times.
-	if ( group == HITGROUP_HEAD ) {
-		LagRecord *record = hit.m_impact->m_shot->m_record;
+	if (group == HITGROUP_HEAD) {
+		LagRecord* record = hit.m_impact->m_shot->m_record;
 
 		//switch( record->m_mode ) {
 		//case Resolver::Modes::RESOLVE_STAND:
