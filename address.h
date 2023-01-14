@@ -33,6 +33,21 @@ public:
 		return ( m_addr ) ? ( t )m_addr : t{};
 	}
 
+	template< typename t = Address > inline t relative(std::size_t offset = 0x1) {
+		if (!m_addr)
+			return t();
+
+		std::size_t new_address = m_addr + offset;
+
+		std::int32_t relative_offset = *reinterpret_cast<std::int32_t*>(new_address);
+
+		if (!relative_offset)
+			return t();
+
+		return (t)(new_address + sizeof(std::size_t) + relative_offset);
+	}
+
+
 	template< typename t = Address >
 	__forceinline t as( size_t offset ) const {
 		return ( m_addr ) ? ( t )( m_addr + offset ) : t{};

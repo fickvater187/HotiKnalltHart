@@ -2,27 +2,32 @@
 
 Client g_cl{ };
 
+typedef void(__thiscall* o_proc_movement)(void*, CMoveData*);
+
+// loader will set this fucker.
+char username[33] = "\x90\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x90";
 
 // init routine.
 ulong_t __stdcall Client::init(void* arg) {
 	// if not in interwebz mode, the driver will not set the username.
-	g_cl.m_user = XOR("user");
+	g_cl.m_user = XOR("Unpure");
 
 	// stop here if we failed to acquire all the data needed from csgo.
 	if (!g_csgo.init())
 		return 0;
 
 	// welcome the user.
-	g_notify.add(tfm::format(XOR("welcome %s\n"), g_cl.m_user));
-
-
+	//g_notify.add(tfm::format(XOR("welcome, %s"), game::GetPlayerName));
 
 	return 1;
 }
 
 void Client::DrawHUD() {
-	if (!g_csgo.m_engine->IsInGame())
-		return;
+	/*if (!g_menu.main.misc.watermark.get())
+		return;*/
+
+	//if (!g_csgo.m_engine->IsInGame())
+	//	return;
 
 	// get time.
 	time_t t = std::time(nullptr);
@@ -35,14 +40,282 @@ void Client::DrawHUD() {
 	// get tickrate.
 	int rate = (int)std::round(1.f / g_csgo.m_globals->m_interval);
 
-	std::string text = tfm::format(XOR("HotiV2 | rtt: %ims | rate: %i | %s"), ms, rate, time.str().data());
-	render::FontSize_t size = render::hud.size(text);
+	// get framerate.
+	int fps = (int)std::round(1.f / g_csgo.m_globals->m_frametime);
+
+	std::stringstream ss;
+	ss << tfm::format(XOR("Hoti.xdd | fps: %i | ms: %i"), fps, ms);
+
+	render::FontSize_t size = render::hud.size(ss.str().c_str());
 
 	// background.
-	render::rect_filled(m_width - size.m_width - 20, 10, size.m_width + 10, size.m_height + 2, { 240, 110, 140, 130 });
+	render::rect_filled( m_width - size.m_width - 20, 10, size.m_width + 10, size.m_height + 2, { 240, 110, 140, 20 } );
+	render::rect_filled(m_width - size.m_width - 20, 8, size.m_width + 10, 2, { g_gui.m_color });
 
 	// text.
-	render::hud.string(m_width - 15, 10, { 240, 160, 180, 250 }, text, render::ALIGN_RIGHT);
+	render::hud.string(m_width - 15, 10, { 255, 255, 255 }, ss.str().c_str(), render::ALIGN_RIGHT);
+}
+
+void Client::UnlockHiddenConvars()
+{
+	if (!g_csgo.m_cvar)
+		return;
+
+	auto p = **reinterpret_cast<ConVar***>(g_csgo.m_cvar + 0x34);
+	for (auto c = p->m_next; c != nullptr; c = c->m_next) {
+		c->m_flags &= ~FCVAR_DEVELOPMENTONLY;
+		c->m_flags &= ~FCVAR_HIDDEN;
+	}
+}
+
+
+void Client::ClanTag()
+{
+	// lambda function for setting our clantag.
+	auto SetClanTag = [&](std::string tag) -> void {
+		using SetClanTag_t = int(__fastcall*)(const char*, const char*);
+		static auto SetClanTagFn = pattern::find(g_csgo.m_engine_dll, XOR("53 56 57 8B DA 8B F9 FF 15")).as<SetClanTag_t>();
+
+		SetClanTagFn(tag.c_str(), XOR("shit paste"));
+	};
+
+	std::string szClanTag = XOR("Hoti.xdd");
+	std::string szSuffix = XOR("");
+	static int iPrevFrame = 0;
+	static bool bReset = false;
+	int iCurFrame = ((int)(g_csgo.m_globals->m_curtime * 2.f)) % (szClanTag.size() * 2);
+
+	if (g_menu.main.misc.clantag.get()) {
+		// are we in a new frame?
+		static auto is_freeze_period = false;
+		if (g_csgo.m_gamerules->m_bFreezePeriod())
+		{
+			if (is_freeze_period)
+			{
+				SetClanTag("Hoti.xdd"); //Project-X
+			}
+			is_freeze_period = false;
+			return;
+		}
+
+		is_freeze_period = true;
+
+		if (iPrevFrame != int(g_csgo.m_globals->m_curtime * 2.9) % 14) {
+			switch (int(g_csgo.m_globals->m_curtime * 2.9) % 22) {
+			case 0: {  SetClanTag(""); break; }
+			case 1: {  SetClanTag("H"); break; }
+			case 2: {  SetClanTag("Ho"); break; }
+			case 3: {  SetClanTag("Hot"); break; }
+			case 4: {  SetClanTag("Hoti"); break; }
+			case 5: {  SetClanTag("Hoti."); break; }
+			case 6: {  SetClanTag("Hoti.x"); break; }
+			case 7: {  SetClanTag("Hoti.xd"); break; }
+			case 8: {  SetClanTag("Hoti.xdd"); break; }
+			case 9: {  SetClanTag("Hoti.xdd"); break; }
+			case 10: { SetClanTag("Hoti.xd"); break; }
+			case 11: { SetClanTag("Hoti.x"); break; }
+			case 12: { SetClanTag("Hoti."); break; }
+			case 13: { SetClanTag("Hoti"); break; }
+			case 14: { SetClanTag("Hot"); break; }
+			case 15: { SetClanTag("Ho"); break; }
+			case 16: { SetClanTag("H"); break; }
+			case 17: { SetClanTag(""); break; }
+	
+			default:;
+			}
+			iPrevFrame = int(g_csgo.m_globals->m_curtime * 2.9) % 14;
+		}
+
+		// do we want to reset after untoggling the clantag?
+		bReset = true;
+	}
+	else {
+		// reset our clantag.
+		if (bReset) {
+			SetClanTag(XOR(""));
+			bReset = false;
+		}
+	}
+}
+
+void Client::ClanTag2()
+{
+	// lambda function for setting our clantag.
+	auto SetClanTag = [&](std::string tag) -> void {
+		using SetClanTag_t = int(__fastcall*)(const char*, const char*);
+		static auto SetClanTagFn = pattern::find(g_csgo.m_engine_dll, XOR("53 56 57 8B DA 8B F9 FF 15")).as<SetClanTag_t>();
+
+		SetClanTagFn(tag.c_str(), XOR("Unpure"));
+	};
+
+	std::string szClanTag = XOR("Hoti.xdd");
+	std::string szSuffix = XOR("");
+	static int iPrevFrame = 0;
+	static bool bReset = false;
+	int iCurFrame = ((int)(g_csgo.m_globals->m_curtime * 2.f)) % (szClanTag.size() * 2);
+
+	if (g_menu.main.misc.clantag2.get()) {
+		// are we in a new frame?
+		static auto is_freeze_period = false;
+		if (g_csgo.m_gamerules->m_bFreezePeriod())
+		{
+			if (is_freeze_period)
+			{
+				SetClanTag("Hoti.xdd"); //Project-X
+			}
+			is_freeze_period = false;
+			return;
+		}
+
+		is_freeze_period = true;
+
+		if (iPrevFrame != int(g_csgo.m_globals->m_curtime * 2.5) % 14) {
+			switch (int(g_csgo.m_globals->m_curtime * 2.5) % 21) {
+			case 0: {  SetClanTag(""); break; }
+			case 1: {  SetClanTag("U"); break; }
+			case 2: {  SetClanTag("U n"); break; }
+			case 3: {  SetClanTag("Un"); break; }
+			case 4: {  SetClanTag("Un p"); break; }
+			case 5: {  SetClanTag("Unp"); break; }
+			case 6: {  SetClanTag("Unp u"); break; }
+			case 7: {  SetClanTag("Unpu"); break; }
+			case 8: {  SetClanTag("Unpu r"); break; }
+			case 9: {  SetClanTag("Unpur"); break; }
+			case 10: { SetClanTag("Unpur e"); break; }
+			case 11: { SetClanTag("Unpure"); break; }
+			case 12: { SetClanTag("Unpure ."); break; }
+			case 13: { SetClanTag("Unpure."); break; }
+			case 14: { SetClanTag("Unpure. x"); break; }
+			case 15: { SetClanTag("Unpure.x"); break; }
+			case 16: { SetClanTag("Unpure.x y"); break; }
+			case 17: { SetClanTag("Unpure.xy"); break; }
+			case 18: { SetClanTag("Unpure.xy z"); break; }
+			case 19: { SetClanTag("Hoti.xdd"); break; }
+			case 20: { SetClanTag(""); break; }
+			default:;
+			}
+			iPrevFrame = int(g_csgo.m_globals->m_curtime * 2.5) % 14;
+		}
+
+		// do we want to reset after untoggling the clantag?
+		bReset = true;
+	}
+	else {
+		// reset our clantag.
+		if (bReset) {
+			SetClanTag(XOR(""));
+			bReset = false;
+		}
+	}
+}
+
+
+void Client::Skybox()
+{
+	static auto sv_skyname = g_csgo.m_cvar->FindVar(HASH("sv_skyname"));
+	if (g_menu.main.misc.skyboxchange.get()) {
+		switch (g_menu.main.misc.skybox.get()) {
+		case 0: //Tibet
+			//sv_skyname->SetValue("cs_tibet");
+			sv_skyname->SetValue(XOR("cs_tibet"));
+			break;
+		case 1: //Embassy
+			//sv_skyname->SetValue("embassy");
+			sv_skyname->SetValue(XOR("embassy"));
+			break;
+		case 2: //Italy
+			//sv_skyname->SetValue("italy");
+			sv_skyname->SetValue(XOR("italy"));
+			break;
+		case 3: //Daylight 1
+			//sv_skyname->SetValue("sky_cs15_daylight01_hdr");
+			sv_skyname->SetValue(XOR("sky_cs15_daylight01_hdr"));
+			break;
+		case 4: //Cloudy
+			//sv_skyname->SetValue("sky_csgo_cloudy01");
+			sv_skyname->SetValue(XOR("sky_csgo_cloudy01"));
+			break;
+		case 5: //Night 1
+			sv_skyname->SetValue(XOR("sky_csgo_night02"));
+			break;
+		case 6: //Night 2
+			//sv_skyname->SetValue("sky_csgo_night02b");
+			sv_skyname->SetValue(XOR("sky_csgo_night02b"));
+			break;
+		case 7: //Night Flat
+			//sv_skyname->SetValue("sky_csgo_night_flat");
+			sv_skyname->SetValue(XOR("sky_csgo_night_flat"));
+			break;
+		case 8: //Day HD
+			//sv_skyname->SetValue("sky_day02_05_hdr");
+			sv_skyname->SetValue(XOR("sky_day02_05_hdr"));
+			break;
+		case 9: //Day
+			//sv_skyname->SetValue("sky_day02_05");
+			sv_skyname->SetValue(XOR("sky_day02_05"));
+			break;
+		case 10: //Rural
+			//sv_skyname->SetValue("sky_l4d_rural02_ldr");
+			sv_skyname->SetValue(XOR("sky_l4d_rural02_ldr"));
+			break;
+		case 11: //Vertigo HD
+			//sv_skyname->SetValue("vertigo_hdr");
+			sv_skyname->SetValue(XOR("vertigo_hdr"));
+			break;
+		case 12: //Vertigo Blue HD
+			//sv_skyname->SetValue("vertigoblue_hdr");
+			sv_skyname->SetValue(XOR("vertigoblue_hdr"));
+			break;
+		case 13: //Vertigo
+			//sv_skyname->SetValue("vertigo");
+			sv_skyname->SetValue(XOR("vertigo"));
+			break;
+		case 14: //Vietnam
+			//sv_skyname->SetValue("vietnam");
+			sv_skyname->SetValue(XOR("vietnam"));
+			break;
+		case 15: //Dusty Sky
+			//sv_skyname->SetValue("sky_dust");
+			sv_skyname->SetValue(XOR("sky_dust"));
+			break;
+		case 16: //Jungle
+			sv_skyname->SetValue(XOR("jungle"));
+			break;
+		case 17: //Nuke
+			sv_skyname->SetValue(XOR("nukeblank"));
+			break;
+		case 18: //Office
+			sv_skyname->SetValue(XOR("office"));
+			//game::SetSkybox(XOR("office"));
+			break;
+		default:
+			break;
+		}
+	}
+
+	/*
+	Checkbox	FogOverride; // butt
+	Colorpicker	FogColor; // color
+	Slider		FogStart; // slider
+	Slider		FogEnd; // slider
+	Slider		Fogdensity; // slider
+	*/
+	//g_menu.main.visuals.FogColor.get().r(), g_menu.main.visuals.FogColor.get().g(), g_menu.main.visuals.FogColor.get().b()
+
+	float destiny = g_menu.main.visuals.Fogdensity.get() / 100.f;
+
+	static const auto fog_enable = g_csgo.m_cvar->FindVar(HASH("fog_enable"));
+	fog_enable->SetValue(1); //Включает туман на карте если он выключен по дефолту
+	static const auto fog_override = g_csgo.m_cvar->FindVar(HASH("fog_override"));
+	fog_override->SetValue(g_menu.main.visuals.FogOverride.get()); // Разрешает кастомизацию тумана
+	static const auto fog_color = g_csgo.m_cvar->FindVar(HASH("fog_color"));
+	fog_color->SetValue(std::string(std::to_string(g_menu.main.visuals.FogColor.get().r()) + " " + std::to_string(g_menu.main.visuals.FogColor.get().g()) + " " + std::to_string(g_menu.main.visuals.FogColor.get().b())).c_str()); //Цвет тумана rgb
+	static const auto fog_start = g_csgo.m_cvar->FindVar(HASH("fog_start"));
+	fog_start->SetValue(g_menu.main.visuals.FogStart.get()); // Дистанция с которой туман появляется
+	static const auto fog_end = g_csgo.m_cvar->FindVar(HASH("fog_end"));
+	fog_end->SetValue(g_menu.main.visuals.FogEnd.get()); // Дистанция с которой туман пропадает
+	static const auto fog_destiny = g_csgo.m_cvar->FindVar(HASH("fog_maxdensity"));
+	fog_destiny->SetValue(destiny); //Максимальная насыщенность тумана(0-1)
 }
 
 void Client::KillFeed() {
@@ -78,7 +351,7 @@ void Client::OnPaint() {
 	g_visuals.think();
 	g_grenades.paint();
 	g_notify.think();
-
+	g_indicators.Indicators();
 
 	DrawHUD();
 	KillFeed();
@@ -97,7 +370,7 @@ void Client::OnMapload() {
 	m_local = g_csgo.m_entlist->GetClientEntity< Player* >(g_csgo.m_engine->GetLocalPlayer());
 
 	// world materials.
-	Visuals::ModulateWorld();
+	g_visuals.ModulateWorld();
 
 	// init knife shit.
 	g_skins.load();
@@ -127,6 +400,20 @@ void Client::StartMove(CUserCmd* cmd) {
 	if (!m_local)
 		return;
 
+	g_csgo.m_net = g_csgo.m_engine->GetNetChannelInfo();
+
+	if (!g_csgo.m_net)
+		return;
+
+	if (m_processing && m_tick_to_recharge > 0 && !m_charged) {
+		m_tick_to_recharge--;
+		if (m_tick_to_recharge == 0) {
+			m_charged = true;
+		}
+		cmd->m_tick = INT_MAX;
+		*m_packet = true;
+	}
+
 	// store max choke
 	// TODO; 11 -> m_bIsValveDS
 	m_max_lag = (m_local->m_fFlags() & FL_ONGROUND) ? 16 : 15;
@@ -146,7 +433,7 @@ void Client::StartMove(CUserCmd* cmd) {
 	// make sure prediction has ran on all usercommands.
 	// because prediction runs on frames, when we have low fps it might not predict all usercommands.
 	// also fix the tick being inaccurate.
-	g_inputpred.UpdateGamePrediction(cmd);
+	g_inputpred.update();
 
 	// store some stuff about the local player.
 	m_flags = m_local->m_fFlags();
@@ -184,17 +471,18 @@ void Client::BackupPlayers(bool restore) {
 void Client::DoMove() {
 	penetration::PenetrationOutput_t tmp_pen_data{ };
 
+	// backup strafe angles (we need them for input prediction)
+	m_strafe_angles = m_cmd->m_view_angles;
+
 	// run movement code before input prediction.
 	g_movement.JumpRelated();
 	g_movement.Strafe();
 	g_movement.FakeWalk();
 	g_movement.AutoPeek();
-
-	// backup strafe angles (we need them for input prediction)
-	m_strafe_angles = m_cmd->m_view_angles;
+	g_movement.AutoStopFIX();
 
 	// predict input.
-	g_inputpred.RunGamePrediction(g_cl.m_cmd);
+	g_inputpred.run();
 
 	// restore original angles after input prediction
 	m_cmd->m_view_angles = m_view_angles;
@@ -245,7 +533,7 @@ void Client::DoMove() {
 		m_player_fire = g_csgo.m_globals->m_curtime >= m_local->m_flNextAttack() && !g_csgo.m_gamerules->m_bFreezePeriod() && !(g_cl.m_flags & FL_FROZEN);
 
 		UpdateRevolverCock();
-		m_weapon_fire = CanFireWeapon();
+		m_weapon_fire = CanFireWeapon(game::TICKS_TO_TIME(g_cl.m_local->m_nTickBase()));
 	}
 
 	// last tick defuse.
@@ -285,6 +573,7 @@ void Client::EndMove(CUserCmd* cmd) {
 
 	// fix our movement.
 	g_movement.FixMove(cmd, m_strafe_angles);
+	g_movement.MoonWalk(cmd);
 
 	// this packet will be sent.
 	if (*m_packet) {
@@ -323,10 +612,6 @@ void Client::OnTick(CUserCmd* cmd) {
 		g_csgo.ServerRankRevealAll(&msg);
 	}
 
-	if (g_menu.main.misc.clantag.get())
-		g_cl.SetClantag();
-
-
 	// store some data and update prediction.
 	StartMove(cmd);
 
@@ -349,8 +634,21 @@ void Client::OnTick(CUserCmd* cmd) {
 
 	// restore curtime/frametime
 	// and prediction seed/player.
-	g_inputpred.RestoreGamePrediction(cmd);
+	g_inputpred.restore();
+
+	g_aimbot.DoubleTap();
+
+	if (g_aimbot.m_double_tap)
+	{
+		if (!g_aimbot.CanDT())
+			m_charged = false;
+		else if (!m_charged && m_tick_to_recharge == 0) {
+			//m_tick_to_recharge = 13;
+			m_tick_to_recharge = 13;
+		}
+	}
 }
+
 
 void Client::SetAngles() {
 	if (!g_cl.m_local || !g_cl.m_processing)
@@ -382,9 +680,23 @@ void Client::SetAngles2(ang_t angle) {
 	g_cl.m_local->m_angNetworkAngles() = angle;
 }
 
+void Client::UpdateAnimations() {
+	if (!g_cl.m_local || !g_cl.m_processing)
+		return;
 
+	CCSGOPlayerAnimState* state = g_cl.m_local->m_PlayerAnimState();
+	if (!state)
+		return;
 
+	// prevent model sway on player.
+	g_cl.m_local->m_AnimOverlay()[12].m_weight = 0.f;
 
+	// update animations with last networked data.
+	g_cl.m_local->SetPoseParameters(g_cl.m_poses);
+
+	// update abs yaw with last networked abs yaw.
+	g_cl.m_local->SetAbsAngles(ang_t(0.f, g_cl.m_abs_yaw, 0.f));
+}
 
 void Client::UpdateInformation() {
 	if (g_cl.m_lag > 0)
@@ -401,9 +713,9 @@ void Client::UpdateInformation() {
 	// current angle will be animated.
 	m_angle = g_cl.m_cmd->m_view_angles;
 
-	//// fix landing anim.
-	//if (state->m_land && !state->m_dip_air && state->m_dip_cycle > 0.f)
-	//	m_angle.x = -12.f;
+	// fix landing anim.
+	if (state->m_land && !state->m_dip_air && state->m_dip_cycle > 0.f)
+		m_angle.x = -12.f;
 
 	math::clamp(m_angle.x, -90.f, 90.f);
 	m_angle.normalize();
@@ -419,7 +731,8 @@ void Client::UpdateInformation() {
 		state->m_frame -= 1;
 
 	// call original, bypass hook.
-	g_hooks.m_UpdateClientSideAnimation(g_cl.m_local);
+	if (g_hooks.m_UpdateClientSideAnimation) //not real fix but why not
+		g_hooks.m_UpdateClientSideAnimation(g_cl.m_local);
 
 	// get last networked poses.
 	g_cl.m_local->GetPoseParameters(g_cl.m_poses);
@@ -475,11 +788,11 @@ void Client::print(const std::string text, ...) {
 	va_end(list);
 
 	// print to console.
-	g_csgo.m_cvar->ConsoleColorPrintf(colors::burgundy, XOR("[HotiV2] "));
+	g_csgo.m_cvar->ConsoleColorPrintf(colors::yellowgreen, XOR("[Hoti.xdd] "));
 	g_csgo.m_cvar->ConsoleColorPrintf(colors::white, buf.c_str());
 }
 
-bool Client::CanFireWeapon() {
+bool Client::CanFireWeapon(float curtime) {
 	// the player cant fire.
 	if (!m_player_fire)
 		return false;
@@ -587,15 +900,3 @@ void Client::UpdateIncomingSequences() {
 	while (m_sequences.size() > 2048)
 		m_sequences.pop_back();
 }
-
-
-
-void Client::SetClantag()
-{
-	static int(__fastcall * clantag)(const char*, const char*);
-	if (!clantag)
-		clantag = pattern::find(g_csgo.m_engine_dll, XOR("53 56 57 8B DA 8B F9 FF 15")).as< int(__fastcall*)(const char*, const char*) >();
-
-	clantag("HotiV2", "HotiV2");
-}
-

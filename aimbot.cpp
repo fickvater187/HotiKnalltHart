@@ -1,6 +1,74 @@
 #include "includes.h"
 
+#define shift_ticks 13
+
 Aimbot g_aimbot{ };;
+
+
+bool CanFireWithExploit(int m_iShiftedTick)
+{
+	// curtime before shift
+	float curtime = game::TICKS_TO_TIME(g_cl.m_local->m_nTickBase() - m_iShiftedTick);
+	return g_cl.CanFireWeapon(curtime);
+}
+
+bool Aimbot::CanDT() {
+	int idx = g_cl.m_weapon->m_iItemDefinitionIndex();
+	return g_cl.m_local->alive()
+		&& g_csgo.m_cl->m_choked_commands <= 1
+		&& m_double_tap && !g_hvh.m_fakeduck;
+}
+
+void Aimbot::DoubleTap()
+{
+	static bool did_shift_before = false;
+	static int double_tapped = 0;
+	static int prev_shift_ticks = 0;
+	static bool reset = false;
+
+	g_cl.m_tick_to_shift = 0;
+	if (CanDT() && !g_csgo.m_gamerules->m_bFreezePeriod())
+	{
+		if (m_double_tap)
+		{
+			prev_shift_ticks = 0;
+
+			auto can_shift_shot = CanFireWithExploit(shift_ticks);
+			auto can_shot = CanFireWithExploit(abs(-1 - prev_shift_ticks));
+
+			if (can_shift_shot || !can_shot && !did_shift_before)
+			{
+				prev_shift_ticks = shift_ticks;
+				double_tapped = 0;
+			}
+			else {
+				double_tapped++;
+				prev_shift_ticks = 0;
+			}
+
+			if (prev_shift_ticks > 0)
+			{
+				if (g_cl.m_weapon->DTable() && CanFireWithExploit(prev_shift_ticks))
+				{
+					if (g_cl.m_cmd->m_buttons & IN_ATTACK)
+					{
+						g_cl.m_tick_to_shift = prev_shift_ticks;
+						reset = true;
+					}
+					else {
+						if ((!(g_cl.m_cmd->m_buttons & IN_ATTACK) || !g_cl.m_shot) && reset
+							&& fabsf(g_cl.m_weapon->m_fLastShotTime() - game::TICKS_TO_TIME(g_cl.m_local->m_nTickBase())) > 0.5f) {
+							g_cl.m_charged = false;
+							g_cl.m_tick_to_recharge = shift_ticks;
+							reset = false;
+						}
+					}
+				}
+			}
+			did_shift_before = prev_shift_ticks != 0;
+		}
+	}
+}
 
 void AimPlayer::UpdateAnimations(LagRecord* record) {
 	CCSGOPlayerAnimState* state = m_player->m_PlayerAnimState();
@@ -322,6 +390,23 @@ void AimPlayer::SetupHitboxes(LagRecord* record, bool history) {
 	// reset hitboxes.
 	m_hitboxes.clear();
 
+
+	bool prefer_head = record->m_velocity.length_2d() > 71.f;
+
+	// prefer
+
+	if (g_menu.main.aimbot.head1.get(0))
+		m_hitboxes.push_back({ HITBOX_HEAD, HitscanMode::PREFER });
+
+	if (g_menu.main.aimbot.head1.get(1) && prefer_head)
+		m_hitboxes.push_back({ HITBOX_HEAD, HitscanMode::PREFER });
+
+	if (g_menu.main.aimbot.head1.get(2) && !(record->m_mode != Resolver::Modes::RESOLVE_NONE && record->m_mode != Resolver::Modes::RESOLVE_WALK && record->m_mode != Resolver::Modes::RESOLVE_BODY))
+		m_hitboxes.push_back({ HITBOX_HEAD, HitscanMode::PREFER });
+
+	if (g_menu.main.aimbot.head1.get(3) && !(record->m_pred_flags & FL_ONGROUND))
+		m_hitboxes.push_back({ HITBOX_HEAD, HitscanMode::PREFER });
+
 	if (g_cl.m_weapon_id == ZEUS) {
 		// hitboxes for the zeus.
 		m_hitboxes.push_back({ HITBOX_BODY, HitscanMode::PREFER });
@@ -341,11 +426,15 @@ void AimPlayer::SetupHitboxes(LagRecord* record, bool history) {
 		m_hitboxes.push_back({ HITBOX_BODY, HitscanMode::LETHAL2 });
 
 	// prefer, fake.
-	if (g_menu.main.aimbot.baim1.get(3) && record->m_mode != Resolver::Modes::RESOLVE_NONE && record->m_mode != Resolver::Modes::RESOLVE_WALK)
+	if (g_menu.main.aimbot.baim1.get(3) && record->m_mode != Resolver::Modes::RESOLVE_NONE && record->m_mode != Resolver::Modes::RESOLVE_WALK && record->m_mode != Resolver::Modes::RESOLVE_BODY)
 		m_hitboxes.push_back({ HITBOX_BODY, HitscanMode::PREFER });
 
 	// prefer, in air.
 	if (g_menu.main.aimbot.baim1.get(4) && !(record->m_pred_flags & FL_ONGROUND))
+		m_hitboxes.push_back({ HITBOX_BODY, HitscanMode::PREFER });
+
+	// prefer, in air.
+	if (g_menu.main.aimbot.baim1.get(5) && (m_last_move >= g_menu.main.aimbot.misses.get() || m_unknown_move >= g_menu.main.aimbot.misses.get()))
 		m_hitboxes.push_back({ HITBOX_BODY, HitscanMode::PREFER });
 
 	bool only{ false };
@@ -363,7 +452,7 @@ void AimPlayer::SetupHitboxes(LagRecord* record, bool history) {
 	}
 
 	// only, fake.
-	if (g_menu.main.aimbot.baim2.get(2) && record->m_mode != Resolver::Modes::RESOLVE_NONE && record->m_mode != Resolver::Modes::RESOLVE_WALK) {
+	if (g_menu.main.aimbot.baim2.get(2) && record->m_mode != Resolver::Modes::RESOLVE_NONE && record->m_mode != Resolver::Modes::RESOLVE_WALK && record->m_mode != Resolver::Modes::RESOLVE_BODY) {
 		only = true;
 		m_hitboxes.push_back({ HITBOX_BODY, HitscanMode::PREFER });
 	}
@@ -374,11 +463,24 @@ void AimPlayer::SetupHitboxes(LagRecord* record, bool history) {
 		m_hitboxes.push_back({ HITBOX_BODY, HitscanMode::PREFER });
 	}
 
-	// only, on key.
-	if (g_input.GetKeyState(g_menu.main.aimbot.baim_key.get())) {
+	// only, in air.
+	if (g_menu.main.aimbot.baim2.get(4) && (m_last_move >= g_menu.main.aimbot.misses.get() || m_unknown_move >= g_menu.main.aimbot.misses.get())) {
 		only = true;
 		m_hitboxes.push_back({ HITBOX_BODY, HitscanMode::PREFER });
 	}
+
+	// only, on key.
+
+	if (g_aimbot.m_baim_toggle) {
+		only = true;
+		m_hitboxes.push_back({ HITBOX_BODY, HitscanMode::PREFER });
+	}
+
+
+	/*if (g_input.GetKeyState(g_menu.main.aimbot.baim_key.get())) {
+		only = true;
+		m_hitboxes.push_back({ HITBOX_BODY, HitscanMode::PREFER });
+	}*/
 
 	// only baim conditions have been met.
 	// do not insert more hitboxes.
@@ -388,6 +490,8 @@ void AimPlayer::SetupHitboxes(LagRecord* record, bool history) {
 	std::vector< size_t > hitbox{ history ? g_menu.main.aimbot.hitbox_history.GetActiveIndices() : g_menu.main.aimbot.hitbox.GetActiveIndices() };
 	if (hitbox.empty())
 		return;
+
+	bool ignore_limbs = record->m_velocity.length_2d() > 71.f && g_menu.main.aimbot.ignor_limbs.get();
 
 	for (const auto& h : hitbox) {
 		// head.
@@ -408,7 +512,7 @@ void AimPlayer::SetupHitboxes(LagRecord* record, bool history) {
 		}
 
 		// arms.
-		if (h == 3) {
+		if (h == 3 && !ignore_limbs) {
 			m_hitboxes.push_back({ HITBOX_L_UPPER_ARM, HitscanMode::NORMAL });
 			m_hitboxes.push_back({ HITBOX_R_UPPER_ARM, HitscanMode::NORMAL });
 		}
@@ -419,6 +523,10 @@ void AimPlayer::SetupHitboxes(LagRecord* record, bool history) {
 			m_hitboxes.push_back({ HITBOX_R_THIGH, HitscanMode::NORMAL });
 			m_hitboxes.push_back({ HITBOX_L_CALF, HitscanMode::NORMAL });
 			m_hitboxes.push_back({ HITBOX_R_CALF, HitscanMode::NORMAL });
+		}
+
+		// foot.
+		if (h == 5 && !ignore_limbs) {
 			m_hitboxes.push_back({ HITBOX_L_FOOT, HitscanMode::NORMAL });
 			m_hitboxes.push_back({ HITBOX_R_FOOT, HitscanMode::NORMAL });
 		}
@@ -622,6 +730,8 @@ void Aimbot::find() {
 
 		// set autostop shit.
 		m_stop = !(g_cl.m_buttons & IN_JUMP);
+
+		bool can_hit_on_fd = !g_hvh.m_fakeduck || g_hvh.m_fakeduck && g_cl.m_local->m_flDuckAmount() == 0.f;
 
 		bool on = g_menu.main.aimbot.hitchance.get() && g_menu.main.config.mode.get() == 0;
 		bool hit = on && CheckHitchance(m_target, m_angle);
@@ -903,7 +1013,7 @@ bool AimPlayer::GetBestAimPosition(vec3_t& aim, float& damage, LagRecord* record
 
 	// get player hp.
 	int hp = std::min(100, m_player->m_iHealth());
-	int half_hp = hp / 2;
+
 	if (g_cl.m_weapon_id == ZEUS) {
 		dmg = pendmg = hp;
 		pen = true;
@@ -1111,7 +1221,8 @@ void Aimbot::apply() {
 	// ensure we're attacking.
 	if (attack || attack2) {
 		// choke every shot.
-		*g_cl.m_packet = false;
+		if (!g_hvh.m_fakeduck)
+			*g_cl.m_packet = true;
 
 		if (m_target) {
 			// make sure to aim at un-interpolated data.
@@ -1126,8 +1237,7 @@ void Aimbot::apply() {
 			if (!g_menu.main.aimbot.silent.get())
 				g_csgo.m_engine->SetViewAngles(m_angle);
 
-			//add checkbox
-			g_visuals.DrawHitboxMatrix(m_record, colors::white, 2.f);
+			g_visuals.DrawHitboxMatrix(m_record, colors::white, 10.f);
 		}
 
 		// nospread.
