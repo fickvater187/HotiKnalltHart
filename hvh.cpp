@@ -786,11 +786,11 @@ void HVH::AntiAim() {
 		// change now inverted arrow angles
 		// left
 		if (g_hvh.angle_side == 1)
-			g_cl.m_cmd->m_view_angles.y -= 34.f;
+			g_cl.m_cmd->m_view_angles.y -= 90.f;
 
 		// right
 		else if (g_hvh.angle_side == 2)
-			g_cl.m_cmd->m_view_angles.y += 74.f;
+			g_cl.m_cmd->m_view_angles.y += 90.f;
 
 		// backwards
 		else if (g_hvh.angle_side == 3)
