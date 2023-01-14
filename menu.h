@@ -182,6 +182,7 @@ public:
 	Checkbox enable;
 	Checkbox edge;
 	Dropdown mode;
+	Dropdown desync_mode;
 
 	Dropdown pitch_stand;
 	Dropdown yaw_stand;
@@ -238,6 +239,10 @@ public:
 	Keybind fake_flick;
 	Slider  fakeflick_angle;
 
+	Keybind left_side;
+	Keybind right_side;
+	Keybind back_side;
+
 	Keybind fakeduck;
 
 public:
@@ -261,6 +266,9 @@ public:
 		yaw_stand.setup(XOR("yaw"), XOR("yaw_stnd"), { XOR("off"), XOR("direction"), XOR("jitter"), XOR("rotate"), XOR("random"), XOR("distortion") });
 		yaw_stand.AddShowCallback(callbacks::IsAntiAimModeStand);
 		RegisterElement(&yaw_stand);
+
+		desync_mode.setup("", XOR("anti-aim mode"), { XOR("manual keybinds"), XOR("disable") }, false);
+		RegisterElement(&desync_mode);
 
 		dir_distort_range.setup("range", XOR("dir_distort_range"), -180.f, 180.f, true, 0, 0.f, 1.f, XOR(L"°"));
 		dir_distort_range.AddShowCallback(callbacks::IsAntiAimModeStand);
@@ -474,6 +482,16 @@ public:
 
 		fakeflick_angle.setup(XOR("angle"), XOR("fakeflick_angle"), 0, 180, true, 0, 113, 1.f);
 		RegisterElement(&fakeflick_angle, 1);
+
+
+
+		right_side.setup(XOR("right keybind"), XOR("right_side"));
+		right_side.SetToggleCallback(callbacks::ToggleRightSide);
+		RegisterElement(&right_side);
+
+		back_side.setup(XOR("left keybind"), XOR("back_side"));
+		back_side.SetToggleCallback(callbacks::ToggleBackSide);
+		RegisterElement(&back_side);
 
 
 		//fakeduck.setup(XOR("fake duck"), XOR("fakeduck"));

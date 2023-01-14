@@ -48,7 +48,7 @@ void HVH::AntiAimPitch() {
 	switch (m_pitch) {
 	case 1:
 		// down.
-		g_cl.m_cmd->m_view_angles.x = safe ? 89.f : 720.f;
+		g_cl.m_cmd->m_view_angles.x = safe ? 73.f : 720.f;
 		break;
 
 	case 2:
@@ -209,6 +209,8 @@ void HVH::AutoDirection() {
 }
 
 void HVH::GetAntiAimDirection() {
+
+
 	// edge aa.
 	if (g_menu.main.antiaim.edge.get() && g_cl.m_local->m_vecVelocity().length() < 320.f) {
 
@@ -671,7 +673,10 @@ void HVH::DoFakeAntiAim() {
 }
 
 void HVH::AntiAim() {
+
 	bool attack, attack2;
+	int side = invert ? -1 : 1;
+	float angle = 125.f;
 
 	if (!g_menu.main.antiaim.enable.get())
 		return;
@@ -756,7 +761,6 @@ void HVH::AntiAim() {
 		// set direction.
 		GetAntiAimDirection();
 	}
-
 	// we have no real, but we do have a fake.
 	else if (g_menu.main.antiaim.fake_yaw.get() > 0)
 		m_direction = g_cl.m_cmd->m_view_angles.y;
@@ -773,9 +777,47 @@ void HVH::AntiAim() {
 		// run the fake on sendpacket true.
 		else DoFakeAntiAim();
 	}
-
 	// no fake, just run real.
 	else DoRealAntiAim();
+
+
+	if (g_menu.main.antiaim.desync_mode.get() == 0)
+	{
+		// change now inverted arrow angles
+		// left
+		if (g_hvh.angle_side == 1)
+			g_cl.m_cmd->m_view_angles.y -= 34.f;
+
+		// right
+		else if (g_hvh.angle_side == 2)
+			g_cl.m_cmd->m_view_angles.y += 74.f;
+
+		// backwards
+		else if (g_hvh.angle_side == 3)
+			g_cl.m_cmd->m_view_angles.y += 180.f;
+
+		// TODO
+		if (*g_cl.m_packet)
+			g_cl.m_cmd->m_view_angles.y += (angle + g_menu.main.antiaim.yaw_stand.get()) * side;
+		else
+			g_cl.m_cmd->m_view_angles.y += (angle - g_menu.main.antiaim.yaw_stand.get()) * side;
+
+	}
+	else
+	{
+		// turn off manuals and send indicators
+		g_hvh.angle_side = NULL;
+
+		// setup offset, manual yaw
+		if (g_menu.main.antiaim.desync_mode.get() == 4)
+		{
+			if (*g_cl.m_packet)
+				g_cl.m_cmd->m_view_angles.y += (angle + g_menu.main.antiaim.yaw_stand.get()) * side;
+			else
+				g_cl.m_cmd->m_view_angles.y += (angle - g_menu.main.antiaim.yaw_stand.get()) * side;
+		}
+
+	}
 }
 
 void HVH::SendPacket() {

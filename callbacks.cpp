@@ -263,6 +263,17 @@ bool callbacks::IsDamageInVisible() {
 	return g_menu.main.aimbot.penetrate_minimal_damage.get() == 1;
 }
 
+void callbacks::ToggleLeftSide() {
+	g_hvh.angle_side = 1;
+}
+
+void callbacks::ToggleRightSide() {
+	g_hvh.angle_side = 2;
+}
+
+void callbacks::ToggleBackSide() {
+	g_hvh.angle_side = 3;
+}
 
 bool callbacks::IsConfigMM() {
 	return g_menu.main.config.mode.get() == 0;

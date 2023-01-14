@@ -38,6 +38,8 @@ public:
 	float  m_dir_custom;
 	size_t m_base_angle;
 	float  m_auto_time;
+	int angle_side;
+	bool invert{};
 
 	bool fakeflick_side;
 	bool   m_step_switch;

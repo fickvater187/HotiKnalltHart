@@ -58,6 +58,9 @@ namespace callbacks {
 	bool IsFakeAntiAimRelative();
 	bool IsFakeAntiAimJitter();
 	bool IsNightMode();
+	void ToggleLeftSide();
+	void ToggleRightSide();
+	void ToggleBackSide();
 
 	bool IsConfigMM();
 	bool IsConfigNS();
