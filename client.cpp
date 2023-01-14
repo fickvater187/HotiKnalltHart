@@ -76,10 +76,10 @@ void Client::ClanTag()
 		using SetClanTag_t = int(__fastcall*)(const char*, const char*);
 		static auto SetClanTagFn = pattern::find(g_csgo.m_engine_dll, XOR("53 56 57 8B DA 8B F9 FF 15")).as<SetClanTag_t>();
 
-		SetClanTagFn(tag.c_str(), XOR("shit paste"));
+		SetClanTagFn(tag.c_str(), XOR("p100 shit paste"));
 	};
 
-	std::string szClanTag = XOR("Hoti.xdd");
+	std::string szClanTag = XOR("Hoti");
 	std::string szSuffix = XOR("");
 	static int iPrevFrame = 0;
 	static bool bReset = false;
@@ -92,7 +92,7 @@ void Client::ClanTag()
 		{
 			if (is_freeze_period)
 			{
-				SetClanTag("Hoti.xdd"); //Project-X
+				SetClanTag("Hoti"); //Project-X
 			}
 			is_freeze_period = false;
 			return;
@@ -103,23 +103,30 @@ void Client::ClanTag()
 		if (iPrevFrame != int(g_csgo.m_globals->m_curtime * 2.9) % 14) {
 			switch (int(g_csgo.m_globals->m_curtime * 2.9) % 22) {
 			case 0: {  SetClanTag(""); break; }
-			case 1: {  SetClanTag("H"); break; }
-			case 2: {  SetClanTag("Ho"); break; }
-			case 3: {  SetClanTag("Hot"); break; }
-			case 4: {  SetClanTag("Hoti"); break; }
-			case 5: {  SetClanTag("Hoti."); break; }
-			case 6: {  SetClanTag("Hoti.x"); break; }
-			case 7: {  SetClanTag("Hoti.xd"); break; }
-			case 8: {  SetClanTag("Hoti.xdd"); break; }
-			case 9: {  SetClanTag("Hoti.xdd"); break; }
-			case 10: { SetClanTag("Hoti.xd"); break; }
-			case 11: { SetClanTag("Hoti.x"); break; }
-			case 12: { SetClanTag("Hoti."); break; }
-			case 13: { SetClanTag("Hoti"); break; }
-			case 14: { SetClanTag("Hot"); break; }
-			case 15: { SetClanTag("Ho"); break; }
-			case 16: { SetClanTag("H"); break; }
-			case 17: { SetClanTag(""); break; }
+			case 1: {  SetClanTag("|"); break; }
+			case 2: {  SetClanTag("|-"); break; }
+			case 3: {  SetClanTag("|-|"); break; }
+			case 4: {  SetClanTag("H"); break; }
+			case 5: {  SetClanTag("H0"); break; }
+			case 6: {  SetClanTag("Ho"); break; }
+			case 7: {  SetClanTag("Ho|"); break; }
+			case 8: {  SetClanTag("Hot"); break; }
+			case 9: {  SetClanTag("Hot|"); break; }
+			case 10: { SetClanTag("Hot|."); break; }
+			case 11: { SetClanTag("Hoti"); break; }
+			case 12: { SetClanTag("Hoti"); break; }
+			case 13: { SetClanTag("Hot|."); break; }
+			case 14: { SetClanTag("Hot|"); break; }
+			case 15: { SetClanTag("Hot"); break; }
+			case 16: { SetClanTag("Ho|"); break; }
+			case 17: { SetClanTag("Ho"); break; }
+			case 18: { SetClanTag("H0"); break; }
+			case 19: { SetClanTag("H"); break; }
+			case 20: { SetClanTag("|-|"); break; }
+			case 21: { SetClanTag("|-"); break; }
+			case 22: { SetClanTag("|"); break; }
+			case 23: { SetClanTag(""); break; }
+
 	
 			default:;
 			}
